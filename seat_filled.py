@@ -87,10 +87,7 @@ def count_available_block(info, index, template):
 
     for i in range(line_size):
         seat_count = 0
-        seat_interval = seat_size
-        if side == 'S':
-            seat_interval = int(seat_size/(2*(seat_step)))
-        for j in range(seat_interval):
+        for j in range(int(seat_size/abs(seat_step))):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -99,19 +96,13 @@ def count_available_block(info, index, template):
 
             cur_row = beg_row+(cur_line*line_step)
             cur_col = beg_col+(cur_seat*seat_step)
+            if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
+                cur_col = cur_col + seat_step - 1
 
             if template.cell(row=cur_row, column=cur_col).value == 'x':
                 # template.cell(row=cur_row, column=cur_col).fill = reserveFill
                 seat_count = seat_count + 1
                 block_seat_count = block_seat_count + 1
-
-                # mirror
-                if side == 'S':
-                    mir_col = beg_col+(seat_size-1)-(cur_seat*seat_step)
-                    if template.cell(row=cur_row, column=mir_col).value == 'x':
-                        # template.cell(row=cur_row, column=mir_col).fill = reserveFill
-                        seat_count = seat_count + 1
-                        block_seat_count = block_seat_count + 1
 
         print('Line', block, i+1, '\thas', seat_count, '\tavailable chairs')
     if block_seat_count > MAX_seat:
@@ -204,10 +195,7 @@ def fill_block(info, index, template, people_size):
         return None
 
     for i in range(line_size):
-        seat_interval = seat_size
-        if side == 'S':
-            seat_interval = int(seat_size/(2*(seat_step)))
-        for j in range(seat_interval):
+        for j in range(int(seat_size/abs(seat_step))):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -216,6 +204,8 @@ def fill_block(info, index, template, people_size):
 
             cur_row = beg_row+(cur_line*line_step)
             cur_col = beg_col+(cur_seat*seat_step)
+            if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
+                cur_col = cur_col + seat_step - 1
 
             if template.cell(row=cur_row, column=cur_col).value == 'x':
                 template.cell(row=cur_row, column=cur_col).fill = reserveFill
@@ -226,19 +216,6 @@ def fill_block(info, index, template, people_size):
                     print('Block', block, 'End', get_column_letter(
                         cur_col), cur_row, 'get people\t', people_size)
                     return
-                # mirror
-                if side == 'S':
-                    mir_col = beg_col+(seat_size-1)-(cur_seat*seat_step)
-                    if template.cell(row=cur_row, column=mir_col).value == 'x':
-                        template.cell(
-                            row=cur_row, column=mir_col).fill = reserveFill
-                        block_seat_count = block_seat_count + 1
-
-                        if block_seat_count == people_size:
-                            last_people_loc.append([cur_row, cur_col])
-                            print('Block', block, 'End', get_column_letter(
-                                mir_col), cur_row, 'get people\t', people_size)
-                            return
 
 
 def import_people(blocks_seat_size):
