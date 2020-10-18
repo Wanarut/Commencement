@@ -10,13 +10,18 @@ from openpyxl.utils.cell import coordinate_from_string, column_index_from_string
 from openpyxl.styles import PatternFill
 import pandas as pd
 
-# load_people = 1900
 print('Seat Step: ', end='')
 s_seat_step = int(input())
 
 catwalk_size = 4
 
+if s_seat_step > catwalk_size:
+    print('Must increase catwalk size')
+    exit()
+
 last_people_loc = []
+color_i = 0
+color_count = 0
 reserveFill = PatternFill(fgColor='00FF00', fill_type='solid')
 
 
@@ -26,16 +31,16 @@ def main():
     temp_inside = workbook['Template Inside_2']
     print(block_info, '\n')
 
-    workbook.remove_sheet(workbook['Template Filled'])
-    temp_filled = workbook.copy_worksheet(temp_inside)
-    temp_filled.title = 'Template Filled'
+    workbook.remove_sheet(workbook['Template Filled Morning'])
+    temp_filled_morning = workbook.copy_worksheet(temp_inside)
+    temp_filled_morning.title = 'Template Filled Morning'
 
     blocks_seat_size = []
     for i in range(10):
         blocks_seat_size.append(
-            count_available_block(block_info, i, temp_filled))
+            count_available_block(block_info, i, temp_filled_morning))
     print('Total available chairs are\t', sum(blocks_seat_size))
-    fill_special_block(block_info, blocks_seat_size, temp_filled)
+    fill_special_block(block_info, blocks_seat_size, temp_filled_morning)
 
     workbook.save('Config.xlsx')
 
@@ -116,19 +121,21 @@ def fill_special_block(info, blocks_seat_size, template):
     s_loc = len(blocks_seat_size)-1
 
     # Import people
-    people_size = import_people(blocks_seat_size)
+    p_info = import_people(blocks_seat_size)
+    people_size = sum(p_info['Size'])
     special_block_size = blocks_seat_size.pop(s_loc)
     remain_people_size = people_size - special_block_size
 
     if remain_people_size > 0:
-        fill_block(info, s_loc, template, special_block_size)
+        fill_block(info, s_loc, template, special_block_size, p_info)
         info = info.drop(s_loc)
-        fill_upper_block(info, blocks_seat_size, template, remain_people_size)
+        fill_upper_block(info, blocks_seat_size, template,
+                         remain_people_size, p_info)
     else:
-        fill_block(info, s_loc, template, people_size)
+        fill_block(info, s_loc, template, people_size, p_info)
 
 
-def fill_upper_block(info, blocks_seat_size, template, people_size):
+def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
     print('Remaining to upper people are\t', people_size)
 
     mid_loc = int(len(blocks_seat_size)/2)
@@ -136,10 +143,10 @@ def fill_upper_block(info, blocks_seat_size, template, people_size):
     remain_people_size = people_size - mid_seat_size
 
     if remain_people_size < 0:
-        fill_block(info, mid_loc, template, people_size)
+        fill_block(info, mid_loc, template, people_size, p_info)
         return
 
-    fill_block(info, mid_loc, template, mid_seat_size)
+    fill_block(info, mid_loc, template, mid_seat_size, p_info)
     for block_loc in range(mid_loc):
         left_loc = mid_loc-block_loc-1
         right_loc = mid_loc+block_loc+1
@@ -151,20 +158,23 @@ def fill_upper_block(info, blocks_seat_size, template, people_size):
             if remain_people_size % 2:
                 # มีแบ่งครึ่งมีเศษ 1 คน
                 fill_block(info, left_loc, template,
-                           int(remain_people_size/2)+1)
+                           int(remain_people_size/2)+1, p_info)
             else:
                 # แบ่งเท่า
-                fill_block(info, left_loc, template, int(remain_people_size/2))
+                fill_block(info, left_loc, template, int(
+                    remain_people_size/2), p_info)
 
-            fill_block(info, right_loc, template, int(remain_people_size/2))
+            fill_block(info, right_loc, template,
+                       int(remain_people_size/2), p_info)
             return
 
         remain_people_size = remain_people_size - left_seat_size - right_seat_size
-        fill_block(info, left_loc, template, left_seat_size)
-        fill_block(info, right_loc, template, right_seat_size)
+        fill_block(info, left_loc, template, left_seat_size, p_info)
+        fill_block(info, right_loc, template, right_seat_size, p_info)
 
 
-def fill_block(info, index, template, people_size):
+
+def fill_block(info, index, template, people_size, p_info):
 
     block_seat_count = 0
     block = info.at[index, 'Block']
@@ -206,10 +216,16 @@ def fill_block(info, index, template, people_size):
             cur_col = beg_col+(cur_seat*seat_step)
             if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                 cur_col = cur_col + seat_step - 1
-
+            
             if template.cell(row=cur_row, column=cur_col).value == 'x':
-                template.cell(row=cur_row, column=cur_col).fill = reserveFill
+                global color_i, color_count
+                template.cell(row=cur_row, column=cur_col).fill = PatternFill(
+                    fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
                 block_seat_count = block_seat_count + 1
+                color_count = color_count + 1
+                if color_count == p_info.at[color_i, 'Size']:
+                    color_i = color_i + 1
+                    color_count = 0
 
                 if block_seat_count == people_size:
                     last_people_loc.append([cur_row, cur_col])
@@ -219,13 +235,13 @@ def fill_block(info, index, template, people_size):
 
 
 def import_people(blocks_seat_size):
-    print('People Size: ', end='')
-    load_people = int(input())
-    print('Total people are\t\t', load_people)
-    if load_people > sum(blocks_seat_size):
+    p_info = pd.read_excel('Order.xlsx', sheet_name='Morning Order')
+    people_size = sum(p_info['Size'])
+    print('Total people are\t\t', people_size)
+    if people_size > sum(blocks_seat_size):
         print('Number of total people are overflow')
         return
-    return load_people
+    return p_info
 
 
 main()
