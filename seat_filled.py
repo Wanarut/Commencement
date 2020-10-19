@@ -71,7 +71,7 @@ def count_available_block(info, index, template):
         seat_step = -1
         print('Block', block, 'is Center Side')
     elif side == 'S':
-        line_step = 2
+        line_step = -2
         seat_step = s_seat_step
         seat_size = seat_size + catwalk_size
         print('Block', block, 'is Special Side')
@@ -126,13 +126,14 @@ def fill_special_block(info, blocks_seat_size, template):
     special_block_size = blocks_seat_size.pop(s_loc)
     remain_people_size = people_size - special_block_size
 
+    info_copy = info
     if remain_people_size > 0:
-        fill_block(info, s_loc, template, special_block_size, p_info)
         info = info.drop(s_loc)
         fill_upper_block(info, blocks_seat_size, template,
                          remain_people_size, p_info)
+        fill_block(info_copy, s_loc, template, special_block_size, p_info)
     else:
-        fill_block(info, s_loc, template, people_size, p_info)
+        fill_block(info_copy, s_loc, template, people_size, p_info)
 
 
 def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
@@ -197,7 +198,7 @@ def fill_block(info, index, template, people_size, p_info):
         line_step = 1
         seat_step = -1
     elif side == 'S':
-        line_step = 2
+        line_step = -2
         seat_step = s_seat_step
         seat_size = seat_size + catwalk_size
     else:
