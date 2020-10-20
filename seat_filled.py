@@ -129,11 +129,11 @@ def fill_special_block(info, blocks_seat_size, template):
     info_copy = info
     if remain_people_size > 0:
         info = info.drop(s_loc)
-        fill_upper_block(info, blocks_seat_size, template,
-                         remain_people_size, p_info)
-        fill_block(info_copy, s_loc, template, special_block_size, p_info)
+        fill_upper_block(info, blocks_seat_size, template,remain_people_size, p_info)
+        reorder_upper(info, blocks_seat_size, template, p_info)
+        fill_block(info_copy, s_loc, template, special_block_size, p_info, 'x')
     else:
-        fill_block(info_copy, s_loc, template, people_size, p_info)
+        fill_block(info_copy, s_loc, template, people_size, p_info, 'x')
 
 
 def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
@@ -144,10 +144,10 @@ def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
     remain_people_size = people_size - mid_seat_size
 
     if remain_people_size < 0:
-        fill_block(info, mid_loc, template, people_size, p_info)
+        fill_block(info, mid_loc, template, people_size, p_info, 'x')
         return
 
-    fill_block(info, mid_loc, template, mid_seat_size, p_info)
+    fill_block(info, mid_loc, template, mid_seat_size, p_info, 'x')
     for block_loc in range(mid_loc):
         left_loc = mid_loc-block_loc-1
         right_loc = mid_loc+block_loc+1
@@ -159,23 +159,22 @@ def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
             if remain_people_size % 2:
                 # มีแบ่งครึ่งมีเศษ 1 คน
                 fill_block(info, left_loc, template,
-                           int(remain_people_size/2)+1, p_info)
+                           int(remain_people_size/2)+1, p_info, 'x')
             else:
                 # แบ่งเท่า
                 fill_block(info, left_loc, template, int(
-                    remain_people_size/2), p_info)
+                    remain_people_size/2), p_info, 'x')
 
             fill_block(info, right_loc, template,
-                       int(remain_people_size/2), p_info)
+                       int(remain_people_size/2), p_info, 'x')
             return
 
         remain_people_size = remain_people_size - left_seat_size - right_seat_size
-        fill_block(info, left_loc, template, left_seat_size, p_info)
-        fill_block(info, right_loc, template, right_seat_size, p_info)
+        fill_block(info, left_loc, template, left_seat_size, p_info, 'x')
+        fill_block(info, right_loc, template, right_seat_size, p_info, 'x')
 
 
-
-def fill_block(info, index, template, people_size, p_info):
+def fill_block(info, index, template, people_size, p_info, sign):
 
     block_seat_count = 0
     block = info.at[index, 'Block']
@@ -218,8 +217,9 @@ def fill_block(info, index, template, people_size, p_info):
             if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                 cur_col = cur_col + seat_step - 1
             
-            if template.cell(row=cur_row, column=cur_col).value == 'x':
+            if template.cell(row=cur_row, column=cur_col).value == sign:
                 global color_i, color_count
+                template.cell(row=cur_row, column=cur_col).value = 'o'
                 template.cell(row=cur_row, column=cur_col).fill = PatternFill(
                     fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
                 block_seat_count = block_seat_count + 1
@@ -243,6 +243,14 @@ def import_people(blocks_seat_size):
         print('Number of total people are overflow')
         return
     return p_info
+
+def reorder_upper(info, blocks_seat_size, template, p_info):
+    global color_i, color_count
+    color_i, color_count = 0, 0
+    
+    for block_loc in range(len(info)-1, -1, -1):
+        seat_size = blocks_seat_size[block_loc]
+        fill_block(info, block_loc, template, seat_size, p_info, 'o')
 
 
 main()
