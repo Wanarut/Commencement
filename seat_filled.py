@@ -23,15 +23,17 @@ last_people_loc = []
 color_i = 0
 color_count = 0
 reserveFill = PatternFill(fgColor='00FF00', fill_type='solid')
-workbook = openpyxl.load_workbook(filename='Config.xlsx')
+config_wb = openpyxl.load_workbook(filename='Config.xlsx')
+list_wb = openpyxl.load_workbook(filename='List.xlsx')
+row_list = 1
 
 def main():
     block_info = pd.read_excel('Config.xlsx', sheet_name='Block Info')
-    temp_inside = workbook['Template Inside_2']
+    temp_inside = config_wb['Template Inside_2']
     print(block_info, '\n')
 
-    workbook.remove_sheet(workbook['Template Filled Morning'])
-    temp_filled_morning = workbook.copy_worksheet(temp_inside)
+    config_wb.remove_sheet(config_wb['Template Filled Morning'])
+    temp_filled_morning = config_wb.copy_worksheet(temp_inside)
     temp_filled_morning.title = 'Template Filled Morning'
 
     blocks_seat_size = []
@@ -41,7 +43,8 @@ def main():
     print('Total available chairs are\t', sum(blocks_seat_size))
     fill_special_block(block_info, blocks_seat_size, temp_filled_morning)
 
-    workbook.save('Config.xlsx')
+    config_wb.save('Config.xlsx')
+    list_wb.save('List.xlsx')
 
 
 def count_available_block(info, index, template):
@@ -104,6 +107,8 @@ def count_available_block(info, index, template):
                 cur_col = cur_col + seat_step - 1
 
             if template.cell(row=cur_row, column=cur_col).value == 'x':
+                if side == 'S':
+                    template.cell(row=cur_row, column=cur_col).value = 'o'
                 # template.cell(row=cur_row, column=cur_col).fill = reserveFill
                 seat_count = seat_count + 1
                 block_seat_count = block_seat_count + 1
@@ -128,9 +133,10 @@ def fill_special_block(info, blocks_seat_size, template):
     info_copy = info
     if remain_people_size > 0:
         info = info.drop(s_loc)
-        fill_upper_block(info, blocks_seat_size, template,remain_people_size, p_info)
-        global workbook
-        workbook.save('Config.xlsx')
+        fill_upper_block(info, blocks_seat_size, template,
+                         remain_people_size, p_info)
+        global config_wb
+        config_wb.save('Config.xlsx')
         print('Please check seatable chair are \'o\' sign in Excel')
         print('continue [Y/n]?', end='')
         resp = input()
@@ -138,12 +144,13 @@ def fill_special_block(info, blocks_seat_size, template):
             if resp.upper() == 'N':
                 exit()
             print('Please response only Y or N')
-        workbook = openpyxl.load_workbook(filename='Config.xlsx')
-        template = workbook['Template Filled Morning']
+        config_wb = openpyxl.load_workbook(filename='Config.xlsx')
+        template = config_wb['Template Filled Morning']
         reorder_upper(info, blocks_seat_size, template, p_info)
-        fill_block(info_copy, s_loc, template, special_block_size, p_info, 'x')
+
+        fill_block(info_copy, s_loc, template, special_block_size, p_info, 'o')
     else:
-        fill_block(info_copy, s_loc, template, people_size, p_info, 'x')
+        fill_block(info_copy, s_loc, template, people_size, p_info, 'o')
 
 
 def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
@@ -167,11 +174,11 @@ def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
 
         if remain_people_size < left_seat_size+right_seat_size:
             if remain_people_size % 2:
-                # มีแบ่งครึ่งมีเศษ 1 คน
+                # odd number of people
                 fill_block(info, left_loc, template,
                            int(remain_people_size/2)+1, p_info, 'x')
             else:
-                # แบ่งเท่า
+                # even number of people
                 fill_block(info, left_loc, template, int(
                     remain_people_size/2), p_info, 'x')
 
@@ -226,7 +233,7 @@ def fill_block(info, index, template, people_size, p_info, sign):
             cur_col = beg_col+(cur_seat*seat_step)
             if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                 cur_col = cur_col + seat_step - 1
-            
+
             if template.cell(row=cur_row, column=cur_col).value == sign:
                 global color_i, color_count
                 template.cell(row=cur_row, column=cur_col).value = 'o'
@@ -234,6 +241,22 @@ def fill_block(info, index, template, people_size, p_info, sign):
                     fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
                 block_seat_count = block_seat_count + 1
                 color_count = color_count + 1
+
+                if sign == 'o':
+                    global row_list
+                    row_list = row_list + 1
+                    list_wb['list1'].cell(row=row_list, column=1).value = row_list - 1
+                    list_wb['list1'].cell(row=row_list, column=2).value = block
+                    if side == 'S' :
+                        list_wb['list1'].cell(row=row_list, column=3).value = i + 2
+                        if (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
+                            list_wb['list1'].cell(row=row_list, column=4).value = ((j+1)*s_seat_step) - catwalk_size
+                        else:
+                            list_wb['list1'].cell(row=row_list, column=4).value = (j*s_seat_step) + 1
+                    else:
+                        list_wb['list1'].cell(row=row_list, column=3).value = i + 1
+                        list_wb['list1'].cell(row=row_list, column=4).value = (j*s_seat_step) + 1
+
                 if color_count == p_info.at[color_i, 'Size']:
                     color_i = color_i + 1
                     color_count = 0
@@ -257,7 +280,7 @@ def import_people(blocks_seat_size):
 def reorder_upper(info, blocks_seat_size, template, p_info):
     global color_i, color_count
     color_i, color_count = 0, 0
-    
+
     for block_loc in range(len(info)-1, -1, -1):
         seat_size = blocks_seat_size[block_loc]
         fill_block(info, block_loc, template, seat_size, p_info, 'o')
