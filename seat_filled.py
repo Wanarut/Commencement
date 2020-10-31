@@ -58,16 +58,16 @@ def count_available_block(info, index, template):
     beg_row = beg_loc[1]
 
     if side == 'L':
-        line_step = -1
+        line_step = -s_seat_step
         seat_step = -1
         print('Block', block, 'is Left Side')
     elif side == 'R':
-        line_step = -1
+        line_step = -s_seat_step
         seat_step = 1
         print('Block', block, 'is Right Side')
     elif side == 'C':
         line_step = 1
-        seat_step = -1
+        seat_step = -s_seat_step
         print('Block', block, 'is Center Side')
     elif side == 'S':
         line_step = -2
@@ -83,7 +83,7 @@ def count_available_block(info, index, template):
 
     print('Start\tat:', get_column_letter(beg_col), beg_row)
     end_col = beg_col+((seat_size-1)*(seat_step/abs(seat_step)))
-    end_row = beg_row+((line_size-1)*line_step)
+    end_row = beg_row+((line_size-1)*(line_step/abs(line_step)))
     print('End\tat:', get_column_letter(end_col), end_row)
 
     if side == 'L' or side == 'R':
@@ -91,7 +91,7 @@ def count_available_block(info, index, template):
 
     for i in range(line_size):
         seat_count = 0
-        for j in range(int(seat_size/abs(seat_step))):
+        for j in range(int(seat_size/s_seat_step) + 1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -198,14 +198,14 @@ def fill_block(info, index, template, people_size, p_info, sign):
     beg_row = beg_loc[1]
 
     if side == 'L':
-        line_step = -1
+        line_step = -s_seat_step
         seat_step = -1
     elif side == 'R':
-        line_step = -1
+        line_step = -s_seat_step
         seat_step = 1
     elif side == 'C':
         line_step = 1
-        seat_step = -1
+        seat_step = -s_seat_step
     elif side == 'S':
         line_step = -2
         seat_step = s_seat_step
@@ -215,7 +215,7 @@ def fill_block(info, index, template, people_size, p_info, sign):
         return None
 
     for i in range(line_size):
-        for j in range(int(seat_size/abs(seat_step))):
+        for j in range(int(seat_size/s_seat_step) + 1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -251,7 +251,6 @@ def import_people(blocks_seat_size):
     print('Total people are\t\t', people_size)
     if people_size > sum(blocks_seat_size):
         print('Number of total people are overflow')
-        return
     return p_info
 
 
