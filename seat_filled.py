@@ -23,10 +23,9 @@ last_people_loc = []
 color_i = 0
 color_count = 0
 reserveFill = PatternFill(fgColor='00FF00', fill_type='solid')
-
+workbook = openpyxl.load_workbook(filename='Config.xlsx')
 
 def main():
-    workbook = openpyxl.load_workbook(filename='Config.xlsx')
     block_info = pd.read_excel('Config.xlsx', sheet_name='Block Info')
     temp_inside = workbook['Template Inside_2']
     print(block_info, '\n')
@@ -130,6 +129,17 @@ def fill_special_block(info, blocks_seat_size, template):
     if remain_people_size > 0:
         info = info.drop(s_loc)
         fill_upper_block(info, blocks_seat_size, template,remain_people_size, p_info)
+        global workbook
+        workbook.save('Config.xlsx')
+        print('Please check seatable chair are \'o\' sign in Excel')
+        print('continue [Y/n]?', end='')
+        resp = input()
+        while(resp.upper() != 'Y'):
+            if resp.upper() == 'N':
+                exit()
+            print('Please response only Y or N')
+        workbook = openpyxl.load_workbook(filename='Config.xlsx')
+        template = workbook['Template Filled Morning']
         reorder_upper(info, blocks_seat_size, template, p_info)
         fill_block(info_copy, s_loc, template, special_block_size, p_info, 'x')
     else:
@@ -243,6 +253,7 @@ def import_people(blocks_seat_size):
         print('Number of total people are overflow')
         return
     return p_info
+
 
 def reorder_upper(info, blocks_seat_size, template, p_info):
     global color_i, color_count
