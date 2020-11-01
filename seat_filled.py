@@ -9,11 +9,13 @@ import openpyxl
 from openpyxl.utils.cell import coordinate_from_string, column_index_from_string, get_column_letter
 from openpyxl.styles import PatternFill
 import pandas as pd
+import math
 
 print('Seat Step: ', end='')
 s_seat_step = int(input())
 
 catwalk_size = 4
+reserved_front = 5
 
 if s_seat_step > catwalk_size:
     print('Must increase catwalk size')
@@ -25,7 +27,9 @@ color_count = 0
 reserveFill = PatternFill(fgColor='00FF00', fill_type='solid')
 config_wb = openpyxl.load_workbook(filename='Config.xlsx')
 list_wb = openpyxl.load_workbook(filename='List.xlsx')
-row_list = 1
+row_no = 1
+people_size = 1000
+
 
 def main():
     block_info = pd.read_excel('Config.xlsx', sheet_name='Block Info')
@@ -36,12 +40,26 @@ def main():
     temp_filled_morning = config_wb.copy_worksheet(temp_inside)
     temp_filled_morning.title = 'Template Filled Morning'
 
+    list_wb.remove_sheet(list_wb['list1'])
+    list_wb.create_sheet('list1')
+    list_1 = list_wb['list1']
+    list_1.cell(row=1, column=1).value = 'No.'
+    list_1.cell(row=1, column=2).value = 'Block'
+    list_1.cell(row=1, column=3).value = 'Line'
+    list_1.cell(row=1, column=4).value = 'Seat'
+
+    list_wb.remove_sheet(list_wb['list2'])
+    list_2 = list_wb.copy_worksheet(list_1)
+    list_2.title = 'list2'
+
     blocks_seat_size = []
     for i in range(10):
         blocks_seat_size.append(
             count_available_block(block_info, i, temp_filled_morning))
     print('Total available chairs are\t', sum(blocks_seat_size))
     fill_special_block(block_info, blocks_seat_size, temp_filled_morning)
+
+    musical_chair(list_2, list_1, block_info)
 
     config_wb.save('Config.xlsx')
     list_wb.save('List.xlsx')
@@ -126,7 +144,7 @@ def fill_special_block(info, blocks_seat_size, template):
 
     # Import people
     p_info = import_people(blocks_seat_size)
-    people_size = sum(p_info['Size'])
+    global people_size
     special_block_size = blocks_seat_size.pop(s_loc)
     remain_people_size = people_size - special_block_size
 
@@ -243,19 +261,23 @@ def fill_block(info, index, template, people_size, p_info, sign):
                 color_count = color_count + 1
 
                 if sign == 'o':
-                    global row_list
-                    row_list = row_list + 1
-                    list_wb['list1'].cell(row=row_list, column=1).value = row_list - 1
-                    list_wb['list1'].cell(row=row_list, column=2).value = block
-                    if side == 'S' :
-                        list_wb['list1'].cell(row=row_list, column=3).value = i + 2
+                    global row_no
+                    row_no = row_no + 1
+                    list_1 = list_wb['list1']
+                    list_1.cell(row=row_no, column=1).value = row_no - 1
+                    list_1.cell(row=row_no, column=2).value = block
+                    if side == 'S':
+                        list_1.cell(row=row_no, column=3).value = i + 2
                         if (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
-                            list_wb['list1'].cell(row=row_list, column=4).value = ((j+1)*s_seat_step) - catwalk_size
+                            list_1.cell(row=row_no, column=4).value = (
+                                (j+1)*s_seat_step) - catwalk_size
                         else:
-                            list_wb['list1'].cell(row=row_list, column=4).value = (j*s_seat_step) + 1
+                            list_1.cell(row=row_no, column=4).value = (
+                                j*s_seat_step) + 1
                     else:
-                        list_wb['list1'].cell(row=row_list, column=3).value = i + 1
-                        list_wb['list1'].cell(row=row_list, column=4).value = (j*s_seat_step) + 1
+                        list_1.cell(row=row_no, column=3).value = i + 1
+                        list_1.cell(row=row_no, column=4).value = (
+                            j*s_seat_step) + 1
 
                 if color_count == p_info.at[color_i, 'Size']:
                     color_i = color_i + 1
@@ -270,6 +292,7 @@ def fill_block(info, index, template, people_size, p_info, sign):
 
 def import_people(blocks_seat_size):
     p_info = pd.read_excel('Order.xlsx', sheet_name='Morning Order')
+    global people_size
     people_size = sum(p_info['Size'])
     print('Total people are\t\t', people_size)
     if people_size > sum(blocks_seat_size):
@@ -284,6 +307,32 @@ def reorder_upper(info, blocks_seat_size, template, p_info):
     for block_loc in range(len(info)-1, -1, -1):
         seat_size = blocks_seat_size[block_loc]
         fill_block(info, block_loc, template, seat_size, p_info, 'o')
+
+
+def musical_chair(list_out, list_in, info):
+    global people_size, row_no
+
+    seat_size = info.at[len(info)-1, 'Seat']
+    reserved_size = int(reserved_front*seat_size/s_seat_step)
+    rotate_size = row_no - reserved_size - 1
+
+    print('Total Loop:', math.ceil((people_size-reserved_size) / rotate_size))
+
+    for i in range(people_size-reserved_size):
+        remainder = (people_size-reserved_size) % rotate_size
+        src_idx = (rotate_size-remainder+i) % rotate_size
+        list_out.cell(row=i+2, column=1).value = i + 1
+        for j in range(3):
+            list_out.cell(
+                row=i+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+
+    for i in range(reserved_size):
+        src_idx = rotate_size + i
+        des_idx = people_size - reserved_size + i
+        list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
+        for j in range(3):
+            list_out.cell(row=des_idx+2, column=j +
+                          2).value = list_in.cell(row=src_idx+2, column=j+2).value
 
 
 main()
