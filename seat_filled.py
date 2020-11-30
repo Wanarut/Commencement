@@ -312,27 +312,35 @@ def reorder_upper(info, blocks_seat_size, template, p_info):
 def musical_chair(list_out, list_in, info):
     global people_size, row_no
 
-    seat_size = info.at[len(info)-1, 'Seat']
-    reserved_size = int(reserved_front*seat_size/s_seat_step)
-    rotate_size = row_no - reserved_size - 1
+    # seat_size = info.at[len(info)-1, 'Seat']
+    # last_reserved = int(reserved_front*seat_size/s_seat_step)
+    first_reserved = 10
+    last_reserved = 10
+    rotate_size = row_no - first_reserved - last_reserved - 1
 
-    print('Total Loop:', math.ceil((people_size-reserved_size) / rotate_size))
+    print('Total Loop:', math.ceil((people_size-last_reserved) / rotate_size))
 
-    for i in range(people_size-reserved_size):
-        remainder = (people_size-reserved_size) % rotate_size
-        src_idx = (rotate_size-remainder+i) % rotate_size
+    for i in range(first_reserved):
+        src_idx = i
+        des_idx = i
+        list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
+        for j in range(3):
+            list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+
+    for i in range(people_size-last_reserved):
+        remainder = (people_size-first_reserved-last_reserved) % rotate_size
+        src_idx = first_reserved + ((rotate_size-remainder+i) % rotate_size)
         list_out.cell(row=i+2, column=1).value = i + 1
         for j in range(3):
             list_out.cell(
                 row=i+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
 
-    for i in range(reserved_size):
+    for i in range(last_reserved):
         src_idx = rotate_size + i
-        des_idx = people_size - reserved_size + i
+        des_idx = people_size - last_reserved + i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
         for j in range(3):
-            list_out.cell(row=des_idx+2, column=j +
-                          2).value = list_in.cell(row=src_idx+2, column=j+2).value
+            list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
 
 
 main()
