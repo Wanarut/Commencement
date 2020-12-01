@@ -81,18 +81,22 @@ def count_available_block(info, index, template):
     if side == 'L':
         line_step = -s_seat_step
         seat_step = -1
+        intervel = s_seat_step
         print('Block', block, 'is Left Side')
     elif side == 'R':
         line_step = -s_seat_step
         seat_step = 1
+        intervel = s_seat_step
         print('Block', block, 'is Right Side')
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
+        intervel = s_seat_step
         print('Block', block, 'is Center Side')
     elif side == 'S':
         line_step = -2
-        seat_step = s_seat_step
+        seat_step = 1
+        intervel = 1
         seat_size = seat_size + catwalk_size
         print('Block', block, 'is Special Side')
     else:
@@ -112,7 +116,7 @@ def count_available_block(info, index, template):
 
     for i in range(line_size):
         seat_count = 0
-        for j in range(int(seat_size/s_seat_step) + 1):
+        for j in range(int(seat_size/intervel) + 1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -225,22 +229,26 @@ def fill_block(info, index, template, people_size, p_info, sign):
     if side == 'L':
         line_step = -s_seat_step
         seat_step = -1
+        intervel = s_seat_step
     elif side == 'R':
         line_step = -s_seat_step
         seat_step = 1
+        intervel = s_seat_step
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
+        intervel = s_seat_step
     elif side == 'S':
         line_step = -2
-        seat_step = s_seat_step
+        seat_step = 1
+        intervel = 1
         seat_size = seat_size + catwalk_size
     else:
         print('Block', block, 'is N/A Side')
         return None
 
     for i in range(line_size):
-        for j in range(int(seat_size/s_seat_step) + 1):
+        for j in range(int(seat_size/intervel) + 1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
