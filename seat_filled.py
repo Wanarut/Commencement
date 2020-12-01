@@ -10,6 +10,7 @@ from openpyxl.utils.cell import coordinate_from_string, column_index_from_string
 from openpyxl.styles import PatternFill
 import pandas as pd
 import math
+import numpy as np
 
 print('Seat Step: ', end='')
 s_seat_step = int(input())
@@ -78,25 +79,23 @@ def count_available_block(info, index, template):
     beg_col = column_index_from_string(beg_loc[0])
     beg_row = beg_loc[1]
 
+    interval = s_seat_step
     if side == 'L':
         line_step = -s_seat_step
         seat_step = -1
-        intervel = s_seat_step
         print('Block', block, 'is Left Side')
     elif side == 'R':
         line_step = -s_seat_step
         seat_step = 1
-        intervel = s_seat_step
         print('Block', block, 'is Right Side')
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
-        intervel = s_seat_step
         print('Block', block, 'is Center Side')
     elif side == 'S':
         line_step = -2
         seat_step = 1
-        intervel = 1
+        interval = 1
         seat_size = seat_size + catwalk_size
         print('Block', block, 'is Special Side')
     else:
@@ -107,8 +106,8 @@ def count_available_block(info, index, template):
         line_size, seat_size = seat_size, line_size
 
     print('Start\tat:', get_column_letter(beg_col), beg_row)
-    end_col = beg_col+((seat_size-1)*(seat_step/abs(seat_step)))
-    end_row = beg_row+((line_size-1)*(line_step/abs(line_step)))
+    end_col = beg_col+((seat_size-1)*(np.sign(seat_step)))
+    end_row = beg_row+((line_size-1)*(np.sign(line_step)))
     print('End\tat:', get_column_letter(end_col), end_row)
 
     if side == 'L' or side == 'R':
@@ -116,7 +115,7 @@ def count_available_block(info, index, template):
 
     for i in range(line_size):
         seat_count = 0
-        for j in range(int(seat_size/intervel) + 1):
+        for j in range(int(seat_size/interval) + 1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -229,26 +228,26 @@ def fill_block(info, index, template, people_size, p_info, sign):
     if side == 'L':
         line_step = -s_seat_step
         seat_step = -1
-        intervel = s_seat_step
+        interval = s_seat_step
     elif side == 'R':
         line_step = -s_seat_step
         seat_step = 1
-        intervel = s_seat_step
+        interval = s_seat_step
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
-        intervel = s_seat_step
+        interval = s_seat_step
     elif side == 'S':
         line_step = -2
         seat_step = 1
-        intervel = 1
+        interval = 1
         seat_size = seat_size + catwalk_size
     else:
         print('Block', block, 'is N/A Side')
         return None
 
     for i in range(line_size):
-        for j in range(int(seat_size/intervel) + 1):
+        for j in range(int(seat_size/interval) + 1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -263,13 +262,13 @@ def fill_block(info, index, template, people_size, p_info, sign):
             if template.cell(row=cur_row, column=cur_col).value == sign:
                 global color_i, color_count
                 template.cell(row=cur_row, column=cur_col).value = 'o'
-                template.cell(row=cur_row, column=cur_col).fill = PatternFill(
-                    fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+                template.cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
                 block_seat_count = block_seat_count + 1
                 color_count = color_count + 1
 
                 if sign == 'o':
                     global row_no
+                    template.cell(row=cur_row, column=cur_col).value = row_no
                     row_no = row_no + 1
                     list_1 = list_wb['list1']
                     list_1.cell(row=row_no, column=1).value = row_no - 1
@@ -277,15 +276,12 @@ def fill_block(info, index, template, people_size, p_info, sign):
                     if side == 'S':
                         list_1.cell(row=row_no, column=3).value = i + 2
                         if (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
-                            list_1.cell(row=row_no, column=4).value = (
-                                (j+1)*s_seat_step) - catwalk_size
+                            list_1.cell(row=row_no, column=4).value = ((j+1)*s_seat_step) - catwalk_size
                         else:
-                            list_1.cell(row=row_no, column=4).value = (
-                                j*s_seat_step) + 1
+                            list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
                     else:
                         list_1.cell(row=row_no, column=3).value = i + 1
-                        list_1.cell(row=row_no, column=4).value = (
-                            j*s_seat_step) + 1
+                        list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
 
                 if color_count == p_info.at[color_i, 'Size']:
                     color_i = color_i + 1
