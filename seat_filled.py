@@ -33,7 +33,7 @@ people_size = 1000
 
 def main():
     block_info = pd.read_excel('Config.xlsx', sheet_name='Block Info')
-    temp_inside = config_wb['Template Inside_2']
+    temp_inside = config_wb['Template Inside']
     print(block_info, '\n')
 
     config_wb.remove_sheet(config_wb['Template Filled Morning'])
