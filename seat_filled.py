@@ -73,6 +73,8 @@ def count_available_block(info, index, template):
     seat_size = info.at[index, 'Seat']
     MAX_seat = info.at[index, 'Max Seat']
     side = info.at[index, 'Side']
+    lorder = info.at[index, 'L Order']
+    sorder = info.at[index, 'S Order']
     pivot = info.at[index, 'Pivot']
 
     beg_loc = coordinate_from_string(pivot)
@@ -83,21 +85,21 @@ def count_available_block(info, index, template):
     if side == 'L':
         line_step = -s_seat_step
         seat_step = -1
-        print('Block', block, 'is Left Side')
+        print('Block', block, 'is Left Side', end='')
     elif side == 'R':
         line_step = -s_seat_step
         seat_step = 1
-        print('Block', block, 'is Right Side')
+        print('Block', block, 'is Right Side', end='')
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
-        print('Block', block, 'is Center Side')
+        print('Block', block, 'is Center Side', end='')
     elif side == 'S':
-        line_step = -2
+        line_step = 2
         seat_step = 1
         interval = 1
         seat_size = seat_size + catwalk_size
-        print('Block', block, 'is Special Side')
+        print('Block', block, 'is Special Side', end='')
     else:
         print('Block', block, 'is N/A Side')
         return None
@@ -106,9 +108,10 @@ def count_available_block(info, index, template):
         line_size, seat_size = seat_size, line_size
 
     print('Start\tat:', get_column_letter(beg_col), beg_row)
-    end_col = beg_col+((seat_size-1)*(np.sign(seat_step)))
-    end_row = beg_row+((line_size-1)*(np.sign(line_step)))
+    end_row = beg_row + line_step*(line_size - 1)
+    end_col = beg_col + np.sign(seat_step)*(seat_size - 1)
     print('End\tat:', get_column_letter(end_col), end_row)
+    return
 
     if side == 'L' or side == 'R':
         line_size, seat_size = seat_size, line_size
@@ -213,38 +216,48 @@ def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
 
 
 def fill_block(info, index, template, people_size, p_info, sign):
-
     block_seat_count = 0
     block = info.at[index, 'Block']
     line_size = info.at[index, 'Line']
     seat_size = info.at[index, 'Seat']
     side = info.at[index, 'Side']
+    lorder = info.at[index, 'L Order']
+    sorder = info.at[index, 'S Order']
     pivot = info.at[index, 'Pivot']
 
     beg_loc = coordinate_from_string(pivot)
     beg_col = column_index_from_string(beg_loc[0])
     beg_row = beg_loc[1]
 
+    interval = s_seat_step
     if side == 'L':
         line_step = -s_seat_step
         seat_step = -1
-        interval = s_seat_step
+        print('Block', block, 'is Left Side')
     elif side == 'R':
         line_step = -s_seat_step
         seat_step = 1
-        interval = s_seat_step
+        print('Block', block, 'is Right Side')
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
-        interval = s_seat_step
+        print('Block', block, 'is Center Side')
     elif side == 'S':
         line_step = -2
         seat_step = 1
         interval = 1
         seat_size = seat_size + catwalk_size
+        print('Block', block, 'is Special Side')
     else:
         print('Block', block, 'is N/A Side')
         return None
+    
+    if lorder == 'r':
+        beg_row = beg_row - line_size
+        line_step = -line_step
+    if sorder == 'r':
+        beg_col = beg_col - seat_size
+        seat_step = -seat_step
 
     for i in range(line_size):
         for j in range(int(seat_size/interval) + 1):
