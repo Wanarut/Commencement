@@ -54,19 +54,19 @@ def main():
     list_2.title = 'list2'
 
     blocks_seat_size = []
-    for i in range(10):
-        blocks_seat_size.append(
-            count_available_block(block_info, i, temp_filled_morning))
+    for i in range(len(block_info)):
+        blocks_seat_size.append(assign_available_block(block_info, i, temp_filled_morning, 'x'))
+    
     print('Total available chairs are\t', sum(blocks_seat_size))
     fill_special_block(block_info, blocks_seat_size, temp_filled_morning)
 
-    musical_chair(list_2, list_1, block_info)
+    # musical_chair(list_2, list_1, block_info)
 
     config_wb.save('Config.xlsx')
     list_wb.save('List.xlsx')
 
 
-def count_available_block(info, index, template):
+def assign_available_block(info, index, template, sign, people_size=0, p_info=None):
     block_seat_count = 0
     block = info.at[index, 'Block']
     line_size = info.at[index, 'Line']
@@ -83,42 +83,74 @@ def count_available_block(info, index, template):
 
     interval = s_seat_step
     if side == 'L':
-        line_step = -s_seat_step
-        seat_step = -1
-        print('Block', block, 'is Left Side', end='')
+        line_step = -1
+        seat_step = -s_seat_step
+        if people_size == 0:
+            print('Block', block, 'is Left Side', end='')
     elif side == 'R':
-        line_step = -s_seat_step
-        seat_step = 1
-        print('Block', block, 'is Right Side', end='')
+        line_step = 1
+        seat_step = -s_seat_step
+        if people_size == 0:
+            print('Block', block, 'is Right Side', end='')
     elif side == 'C':
         line_step = 1
         seat_step = -s_seat_step
-        print('Block', block, 'is Center Side', end='')
+        if people_size == 0:
+            print('Block', block, 'is Center Side', end='')
     elif side == 'S':
         line_step = 2
         seat_step = 1
         interval = 1
         seat_size = seat_size + catwalk_size
-        print('Block', block, 'is Special Side', end='')
+        if people_size == 0:
+            print('Block', block, 'is Special Side', end='')
     else:
-        print('Block', block, 'is N/A Side')
+        if people_size == 0:
+            print('Block', block, 'is N/A Side')
         return None
 
     if side == 'L' or side == 'R':
         line_size, seat_size = seat_size, line_size
+        line_step, seat_step = seat_step, line_step
+        lorder, sorder = sorder, lorder
 
-    print('Start\tat:', get_column_letter(beg_col), beg_row)
-    end_row = beg_row + line_step*(line_size - 1)
-    end_col = beg_col + np.sign(seat_step)*(seat_size - 1)
-    print('End\tat:', get_column_letter(end_col), end_row)
-    return
+    if lorder == 'r':
+        if side == 'S':
+            beg_row = beg_row + line_step*(line_size-1)
+        else:
+            beg_row = beg_row + np.sign(line_step)*(line_size-1)
+        line_step = -line_step
+        if people_size == 0:
+            print('\tr line', end='')
+    else:
+        if people_size == 0:
+            print('\tn line', end='')
 
+    if sorder == 'r':
+        beg_col = beg_col + np.sign(seat_step)*(seat_size-1)
+        seat_step = -seat_step
+        if people_size == 0:
+            print('\tr seat')
+    else:
+        if people_size == 0:
+            print('\tn seat')
+    
+    if side == 'S':
+        end_row = beg_row + line_step*(line_size-1)
+    else:
+        end_row = beg_row + np.sign(line_step)*(line_size-1)
+    end_col = beg_col + np.sign(seat_step)*(seat_size-1)
+    
+    if people_size == 0:
+        print('Start\tat:', get_column_letter(beg_col), beg_row)
+        print('End\tat:', get_column_letter(end_col), end_row)
+    
     if side == 'L' or side == 'R':
         line_size, seat_size = seat_size, line_size
 
     for i in range(line_size):
         seat_count = 0
-        for j in range(int(seat_size/interval) + 1):
+        for j in range(int(seat_size/interval)+1):
             # rotation block
             if side == 'C' or side == 'S':
                 cur_line, cur_seat = i, j
@@ -130,19 +162,69 @@ def count_available_block(info, index, template):
             if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                 cur_col = cur_col + seat_step - 1
 
-            if template.cell(row=cur_row, column=cur_col).value == 'x':
-                if side == 'S':
-                    template.cell(row=cur_row, column=cur_col).value = 'o'
-                # template.cell(row=cur_row, column=cur_col).fill = reserveFill
+            if template.cell(row=cur_row, column=cur_col).value == sign:
                 seat_count = seat_count + 1
                 block_seat_count = block_seat_count + 1
+                if people_size > 0:
+                    if sign == 'x':
+                        template.cell(row=cur_row, column=cur_col).value = 'o'
+                        template.cell(row=cur_row, column=cur_col).fill = reserveFill
+                    else:
+                        global color_i, color_count, row_no
+                        template.cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+                        # template.cell(row=cur_row, column=cur_col).value = 'o'
+                        template.cell(row=cur_row, column=cur_col).value = row_no
+                        color_count = color_count + 1
+                        row_no = row_no + 1
+                        
+                        list_1 = list_wb['list1']
+                        list_1.cell(row=row_no, column=1).value = row_no - 1
+                        list_1.cell(row=row_no, column=2).value = block
+                        if side == 'S':
+                            if lorder == 'n':
+                                list_1.cell(row=row_no, column=3).value = i + 2
+                            else:
+                                list_1.cell(row=row_no, column=3).value = line_size - i + 1
+                            if (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
+                                if sorder == 'n':
+                                    list_1.cell(row=row_no, column=4).value = ((j+1)*s_seat_step) - catwalk_size
+                                else:
+                                    list_1.cell(row=row_no, column=4).value = seat_size - (((j+1)*s_seat_step) - catwalk_size) - 1
+                            else:
+                                if sorder == 'n':
+                                    list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
+                                else:
+                                    list_1.cell(row=row_no, column=4).value = seat_size - (j*s_seat_step)
+                        
+                        else:
+                            if lorder == 'n':
+                                list_1.cell(row=row_no, column=3).value = i + 1
+                            else:
+                                list_1.cell(row=row_no, column=3).value = line_size - i
+                            if sorder == 'n':
+                                list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
+                            else:
+                                list_1.cell(row=row_no, column=4).value = seat_size - (j*s_seat_step)
 
-        print('Line', block, i+1, '\thas', seat_count, '\tavailable chairs')
+                        if color_count == p_info.at[color_i, 'Size']:
+                            color_i = color_i + 1
+                            color_count = 0
+
+                    if block_seat_count == people_size:
+                        last_people_loc.append([cur_row, cur_col])
+                        print('Block', block, 'End', get_column_letter(cur_col), cur_row, 'get people\t', people_size)
+                        return
+                
+
+        if people_size == 0:
+            print('Line', block, i+1, '\thas', seat_count, '\tavailable chairs')
+    
     if block_seat_count > MAX_seat:
         print('OVERFLOW Seat')
 
-    print('available chairs are', block_seat_count, '\n')
-    return block_seat_count
+    if people_size == 0:
+        print('available chairs are', block_seat_count, '\n')
+        return block_seat_count
 
 
 def fill_special_block(info, blocks_seat_size, template):
@@ -157,8 +239,8 @@ def fill_special_block(info, blocks_seat_size, template):
     info_copy = info
     if remain_people_size > 0:
         info = info.drop(s_loc)
-        fill_upper_block(info, blocks_seat_size, template,
-                         remain_people_size, p_info)
+        reserve_upper_block(info, blocks_seat_size, template, remain_people_size, p_info)
+        assign_available_block(info_copy, s_loc, template, 'x', special_block_size, p_info)
         global config_wb
         config_wb.save('Config.xlsx')
         print('Please check seatable chair are \'o\' sign in Excel')
@@ -172,12 +254,12 @@ def fill_special_block(info, blocks_seat_size, template):
         template = config_wb['Template Filled Morning']
         reorder_upper(info, blocks_seat_size, template, p_info)
 
-        fill_block(info_copy, s_loc, template, special_block_size, p_info, 'o')
+        assign_available_block(info_copy, s_loc, template, 'o', special_block_size, p_info)
     else:
-        fill_block(info_copy, s_loc, template, people_size, p_info, 'o')
+        assign_available_block(info_copy, s_loc, template, 'o', people_size, p_info,)
 
 
-def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
+def reserve_upper_block(info, blocks_seat_size, template, people_size, p_info):
     print('Remaining to upper people are\t', people_size)
 
     mid_loc = int(len(blocks_seat_size)/2)
@@ -185,10 +267,10 @@ def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
     remain_people_size = people_size - mid_seat_size
 
     if remain_people_size < 0:
-        fill_block(info, mid_loc, template, people_size, p_info, 'x')
+        assign_available_block(info, mid_loc, template, 'x', people_size, p_info)
         return
 
-    fill_block(info, mid_loc, template, mid_seat_size, p_info, 'x')
+    assign_available_block(info, mid_loc, template, 'x', mid_seat_size, p_info)
     for block_loc in range(mid_loc):
         left_loc = mid_loc-block_loc-1
         right_loc = mid_loc+block_loc+1
@@ -199,112 +281,17 @@ def fill_upper_block(info, blocks_seat_size, template, people_size, p_info):
         if remain_people_size < left_seat_size+right_seat_size:
             if remain_people_size % 2:
                 # odd number of people
-                fill_block(info, left_loc, template,
-                           int(remain_people_size/2)+1, p_info, 'x')
+                assign_available_block(info, left_loc, template, 'x', int(remain_people_size/2)+1, p_info)
             else:
                 # even number of people
-                fill_block(info, left_loc, template, int(
-                    remain_people_size/2), p_info, 'x')
+                assign_available_block(info, left_loc, template, 'x', int(remain_people_size/2), p_info)
 
-            fill_block(info, right_loc, template,
-                       int(remain_people_size/2), p_info, 'x')
+            assign_available_block(info, right_loc, template, 'x', int(remain_people_size/2), p_info)
             return
 
         remain_people_size = remain_people_size - left_seat_size - right_seat_size
-        fill_block(info, left_loc, template, left_seat_size, p_info, 'x')
-        fill_block(info, right_loc, template, right_seat_size, p_info, 'x')
-
-
-def fill_block(info, index, template, people_size, p_info, sign):
-    block_seat_count = 0
-    block = info.at[index, 'Block']
-    line_size = info.at[index, 'Line']
-    seat_size = info.at[index, 'Seat']
-    side = info.at[index, 'Side']
-    lorder = info.at[index, 'L Order']
-    sorder = info.at[index, 'S Order']
-    pivot = info.at[index, 'Pivot']
-
-    beg_loc = coordinate_from_string(pivot)
-    beg_col = column_index_from_string(beg_loc[0])
-    beg_row = beg_loc[1]
-
-    interval = s_seat_step
-    if side == 'L':
-        line_step = -s_seat_step
-        seat_step = -1
-        print('Block', block, 'is Left Side')
-    elif side == 'R':
-        line_step = -s_seat_step
-        seat_step = 1
-        print('Block', block, 'is Right Side')
-    elif side == 'C':
-        line_step = 1
-        seat_step = -s_seat_step
-        print('Block', block, 'is Center Side')
-    elif side == 'S':
-        line_step = -2
-        seat_step = 1
-        interval = 1
-        seat_size = seat_size + catwalk_size
-        print('Block', block, 'is Special Side')
-    else:
-        print('Block', block, 'is N/A Side')
-        return None
-    
-    if lorder == 'r':
-        beg_row = beg_row - line_size
-        line_step = -line_step
-    if sorder == 'r':
-        beg_col = beg_col - seat_size
-        seat_step = -seat_step
-
-    for i in range(line_size):
-        for j in range(int(seat_size/interval) + 1):
-            # rotation block
-            if side == 'C' or side == 'S':
-                cur_line, cur_seat = i, j
-            else:
-                cur_line, cur_seat = j, i
-
-            cur_row = beg_row+(cur_line*line_step)
-            cur_col = beg_col+(cur_seat*seat_step)
-            if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
-                cur_col = cur_col + seat_step - 1
-
-            if template.cell(row=cur_row, column=cur_col).value == sign:
-                global color_i, color_count
-                template.cell(row=cur_row, column=cur_col).value = 'o'
-                template.cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
-                block_seat_count = block_seat_count + 1
-                color_count = color_count + 1
-
-                if sign == 'o':
-                    global row_no
-                    template.cell(row=cur_row, column=cur_col).value = row_no
-                    row_no = row_no + 1
-                    list_1 = list_wb['list1']
-                    list_1.cell(row=row_no, column=1).value = row_no - 1
-                    list_1.cell(row=row_no, column=2).value = block
-                    if side == 'S':
-                        list_1.cell(row=row_no, column=3).value = i + 2
-                        if (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
-                            list_1.cell(row=row_no, column=4).value = ((j+1)*s_seat_step) - catwalk_size
-                        else:
-                            list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
-                    else:
-                        list_1.cell(row=row_no, column=3).value = i + 1
-                        list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
-
-                if color_count == p_info.at[color_i, 'Size']:
-                    color_i = color_i + 1
-                    color_count = 0
-
-                if block_seat_count == people_size:
-                    last_people_loc.append([cur_row, cur_col])
-                    print('Block', block, 'End', get_column_letter(
-                        cur_col), cur_row, 'get people\t', people_size)
-                    return
+        assign_available_block(info, left_loc, template, 'x', left_seat_size, p_info)
+        assign_available_block(info, right_loc, template, 'x', right_seat_size, p_info)
 
 
 def import_people(blocks_seat_size):
@@ -313,17 +300,17 @@ def import_people(blocks_seat_size):
     people_size = sum(p_info['Size'])
     print('Total people are\t\t', people_size)
     if people_size > sum(blocks_seat_size):
-        print('Number of total people are overflow')
+        print('Number of total people are overflow, Must loop')
     return p_info
 
 
 def reorder_upper(info, blocks_seat_size, template, p_info):
-    global color_i, color_count
-    color_i, color_count = 0, 0
+    global color_i, color_count, row_no
+    color_i, color_count, row_no = 0, 0, 1
 
     for block_loc in range(len(info)-1, -1, -1):
         seat_size = blocks_seat_size[block_loc]
-        fill_block(info, block_loc, template, seat_size, p_info, 'o')
+        assign_available_block(info, block_loc, template, 'o', seat_size, p_info)
 
 
 def musical_chair(list_out, list_in, info):
