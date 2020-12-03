@@ -147,6 +147,8 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
     
     if side == 'L' or side == 'R':
         line_size, seat_size = seat_size, line_size
+        # line_step, seat_step = seat_step, line_step
+        lorder, sorder = sorder, lorder
 
     for i in range(line_size):
         seat_count = 0
