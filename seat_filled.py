@@ -16,7 +16,8 @@ print('Seat Step: ', end='')
 s_seat_step = int(input())
 
 catwalk_size = 4
-reserved_front = 5
+first_reserved_size = 10
+last_reserved_size = 10
 
 if s_seat_step > catwalk_size:
     print('Must increase catwalk size')
@@ -48,6 +49,8 @@ def main():
     list_1.cell(row=1, column=2).value = 'Block'
     list_1.cell(row=1, column=3).value = 'Line'
     list_1.cell(row=1, column=4).value = 'Seat'
+    list_1.cell(row=1, column=5).value = 'Column'
+    list_1.cell(row=1, column=6).value = 'Row'
 
     list_wb.remove_sheet(list_wb['list2'])
     list_2 = list_wb.copy_worksheet(list_1)
@@ -60,7 +63,7 @@ def main():
     print('Total available chairs are\t', sum(blocks_seat_size))
     fill_special_block(block_info, blocks_seat_size, temp_filled_morning)
 
-    # musical_chair(list_2, list_1, block_info)
+    musical_chair(list_2, list_1)
 
     config_wb.save('Config.xlsx')
     list_wb.save('List.xlsx')
@@ -182,6 +185,8 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
                         list_1 = list_wb['list1']
                         list_1.cell(row=row_no, column=1).value = row_no - 1
                         list_1.cell(row=row_no, column=2).value = block
+                        list_1.cell(row=row_no, column=5).value = get_column_letter(cur_col)
+                        list_1.cell(row=row_no, column=6).value = cur_row
                         if side == 'S':
                             if lorder == 'n':
                                 list_1.cell(row=row_no, column=3).value = i + 2
@@ -189,14 +194,14 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
                                 list_1.cell(row=row_no, column=3).value = line_size - i + 1
                             if (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                                 if sorder == 'n':
-                                    list_1.cell(row=row_no, column=4).value = ((j+1)*s_seat_step) - catwalk_size
+                                    list_1.cell(row=row_no, column=4).value = ((j+1)*seat_step) - catwalk_size
                                 else:
-                                    list_1.cell(row=row_no, column=4).value = seat_size - (((j+1)*s_seat_step) - catwalk_size) - 1
+                                    list_1.cell(row=row_no, column=4).value = seat_size - (((j+1)*seat_step) - catwalk_size) - 1
                             else:
                                 if sorder == 'n':
-                                    list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
+                                    list_1.cell(row=row_no, column=4).value = (j*seat_step) + 1
                                 else:
-                                    list_1.cell(row=row_no, column=4).value = seat_size - (j*s_seat_step)
+                                    list_1.cell(row=row_no, column=4).value = seat_size - (j*seat_step)
                         
                         else:
                             if lorder == 'n':
@@ -315,38 +320,74 @@ def reorder_upper(info, blocks_seat_size, template, p_info):
         assign_available_block(info, block_loc, template, 'o', seat_size, p_info)
 
 
-def musical_chair(list_out, list_in, info):
-    global people_size, row_no
+def musical_chair(list_out, list_in):
+    global people_size, row_no, config_wb, color_i, color_count
+    color_i, color_count = 0, 0
+    p_info = pd.read_excel('Order.xlsx', sheet_name='Morning Order')
 
-    # seat_size = info.at[len(info)-1, 'Seat']
-    # last_reserved = int(reserved_front*seat_size/s_seat_step)
-    first_reserved = 10
-    last_reserved = 10
-    rotate_size = row_no - first_reserved - last_reserved - 1
+    rotate_size = row_no - 1 - first_reserved_size - last_reserved_size
+    remain_people = people_size-first_reserved_size-last_reserved_size
+    loop_size = math.ceil(remain_people / rotate_size)
+    print('Total Loop:', loop_size)
 
-    print('Total Loop:', math.ceil((people_size-last_reserved) / rotate_size))
+    template = []
+    for i in range(loop_size):
+        temp_inside = config_wb['Template Inside']
+        config_wb.remove_sheet(config_wb['Template Filled Morning_'+str(i+1)])
+        template.append(config_wb.copy_worksheet(temp_inside))
+        template[i].title = 'Template Filled Morning_'+str(i+1)
 
-    for i in range(first_reserved):
+    for i in range(first_reserved_size):
         src_idx = i
         des_idx = i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
-        for j in range(3):
+        for j in range(5):
             list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+        
+        cur_row = list_out.cell(row=des_idx+2, column=6).value
+        cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
+        for j in range(loop_size):
+            template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+            template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        color_count = color_count + 1
+        if color_count == p_info.at[color_i, 'Size']:
+            color_i = color_i + 1
+            color_count = 0
 
-    for i in range(people_size-last_reserved):
-        remainder = (people_size-first_reserved-last_reserved) % rotate_size
-        src_idx = first_reserved + ((rotate_size-remainder+i) % rotate_size)
-        list_out.cell(row=i+2, column=1).value = i + 1
-        for j in range(3):
-            list_out.cell(
-                row=i+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
-
-    for i in range(last_reserved):
-        src_idx = rotate_size + i
-        des_idx = people_size - last_reserved + i
+    for i in range(remain_people):
+        remainder = remain_people % rotate_size
+        src_idx = first_reserved_size + ((rotate_size-remainder+i) % rotate_size)
+        des_idx = first_reserved_size + i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
-        for j in range(3):
+        for j in range(5):
             list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+
+        cur_row = list_out.cell(row=des_idx+2, column=6).value
+        cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
+        j = int((des_idx-first_reserved_size)/rotate_size)
+        template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+        template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        color_count = color_count + 1
+        if color_count == p_info.at[color_i, 'Size']:
+            color_i = color_i + 1
+            color_count = 0
+
+    for i in range(last_reserved_size):
+        src_idx = first_reserved_size + rotate_size + i
+        des_idx = people_size - last_reserved_size + i
+        list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
+        for j in range(5):
+            list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+        
+        cur_row = list_out.cell(row=des_idx+2, column=6).value
+        cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
+        for j in range(loop_size):
+            template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+            template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        color_count = color_count + 1
+        if color_count == p_info.at[color_i, 'Size']:
+            color_i = color_i + 1
+            color_count = 0
 
 
 main()
