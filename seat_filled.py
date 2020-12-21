@@ -15,9 +15,10 @@ import numpy as np
 print('Seat Step: ', end='')
 s_seat_step = int(input())
 
-first_reserved_size = 100
+first_reserved_size = int(1399/2)+24+24+58
 last_reserved_size = 332
 out_template = 'Morning Order'
+# out_template = 'Afternoon Order'
 catwalk_size = 4
 
 if s_seat_step > catwalk_size:
@@ -326,7 +327,7 @@ def musical_chair(list_out, list_in):
     color_i, color_count = 0, 0
     p_info = pd.read_excel('Order.xlsx', sheet_name=out_template)
 
-    rotate_size = row_no - 1 - first_reserved_size - last_reserved_size
+    rotate_size = row_no - 1 - (first_reserved_size + last_reserved_size)
     remain_people = people_size-first_reserved_size-last_reserved_size
     loop_size = math.ceil(remain_people / rotate_size)
     print('Total Loop:', loop_size)
@@ -359,8 +360,9 @@ def musical_chair(list_out, list_in):
             color_count = 0
 
     for i in range(remain_people):
-        remainder = remain_people % rotate_size
-        src_idx = first_reserved_size + ((rotate_size-remainder+i) % rotate_size)
+        # remainder = remain_people % rotate_size
+        # src_idx = first_reserved_size + ((rotate_size-remainder+i) % rotate_size)
+        src_idx = first_reserved_size + (i % rotate_size)
         des_idx = first_reserved_size + i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
         for j in range(5):
@@ -385,11 +387,11 @@ def musical_chair(list_out, list_in):
         
         cur_row = list_out.cell(row=des_idx+2, column=6).value
         cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
-        # for j in range(loop_size):
-        #     template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
-        #     template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
-        template[0].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
-        template[0].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        for j in range(loop_size):
+            template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+            template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        # template[0].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+        # template[0].cell(row=cur_row, column=cur_col).value = des_idx + 1
         color_count = color_count + 1
         if color_count == p_info.at[color_i, 'Size']:
             color_i = color_i + 1
