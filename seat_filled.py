@@ -12,7 +12,7 @@ import pandas as pd
 import math
 import numpy as np
 
-first_reserved_size = int(1399/2)+24
+first_reserved_size = 100
 last_reserved_size = 332
 catwalk_size = 4
 
@@ -75,6 +75,10 @@ def main():
         blocks_seat_size.append(assign_available_block(block_info, i, temp_filled_morning, 'x'))
     
     print('Total available chairs are\t', sum(blocks_seat_size))
+    global first_reserved_size
+    first_reserved_size = sum(blocks_seat_size[:-1])
+    print('Total available upper chairs are\t', first_reserved_size)
+    print('Total available lowwer chairs are\t', blocks_seat_size[-1])
     fill_special_block(block_info, blocks_seat_size, temp_filled_morning)
 
     musical_chair(list_2, list_1)
@@ -178,8 +182,28 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
             else:
                 cur_line, cur_seat = j, i
 
-            cur_row = beg_row+(cur_line*line_step)
-            cur_col = beg_col+(cur_seat*seat_step)
+            if i%2:
+                offset = 1
+                if side == 'C':
+                    col_offset = 1
+                    row_offset = 0
+                elif side != 'S':
+                    col_offset = 0
+                    row_offset = 1
+            else:
+                offset = 0
+                col_offset = 0
+                row_offset = 0
+
+            cur_row = beg_row+(cur_line*line_step)+row_offset
+            cur_col = beg_col+(cur_seat*seat_step)+col_offset
+            
+            # if i%2:
+            #     if side == 'C':
+            #         cur_col = beg_col+(cur_seat*seat_step)+1
+            #     elif side != 'S':
+            #         cur_row = beg_row+(cur_line*line_step)+1
+
             if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                 cur_col = cur_col + seat_step - 1
 
@@ -231,9 +255,9 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
                             else:
                                 list_1.cell(row=row_no, column=3).value = line_size - i
                             if sorder == 'n':
-                                list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1
+                                list_1.cell(row=row_no, column=4).value = (j*s_seat_step) + 1 - offset
                             else:
-                                list_1.cell(row=row_no, column=4).value = seat_size - (j*s_seat_step)
+                                list_1.cell(row=row_no, column=4).value = seat_size - (j*s_seat_step) - offset
 
                         if color_count == p_info.at[color_i, 'Size']:
                             color_i = color_i + 1
