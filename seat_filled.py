@@ -64,7 +64,7 @@ def main():
     list_1.cell(row=1, column=4).value = 'Seat'
     list_1.cell(row=1, column=5).value = 'Column'
     list_1.cell(row=1, column=6).value = 'Row'
-    list_1.cell(row=1, column=7).value = 'nextishead'
+    list_1.cell(row=1, column=7).value = 'Printable'
 
     list_wb.remove_sheet(list_wb[out_template+'_list2'])
     list_2 = list_wb.copy_worksheet(list_1)
@@ -244,7 +244,8 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
                         print('Block', block, 'End', get_column_letter(cur_col), cur_row, 'get people\t', people_size)
                         return
             else:
-                list_1.cell(row=row_no, column=7).value = 'Print'
+                if row_no > 1:
+                    list_1.cell(row=row_no, column=7).value = 'Print'
                 nextishead = True
                 
 
