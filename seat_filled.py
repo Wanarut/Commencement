@@ -52,23 +52,23 @@ def main():
     temp_inside = config_wb['Template Inside']
     print(block_info, '\n')
 
-    # config_wb.remove_sheet(config_wb[out_template])
     temp_filled_morning = config_wb.copy_worksheet(temp_inside)
     temp_filled_morning.title = out_template
 
-    list_wb.remove_sheet(list_wb['list1'])
-    list_wb.create_sheet('list1')
-    list_1 = list_wb['list1']
+    list_wb.remove_sheet(list_wb[out_template+'_list1'])
+    list_wb.create_sheet(out_template+'_list1')
+    list_1 = list_wb[out_template+'_list1']
     list_1.cell(row=1, column=1).value = 'No.'
     list_1.cell(row=1, column=2).value = 'Block'
     list_1.cell(row=1, column=3).value = 'Line'
     list_1.cell(row=1, column=4).value = 'Seat'
     list_1.cell(row=1, column=5).value = 'Column'
     list_1.cell(row=1, column=6).value = 'Row'
+    list_1.cell(row=1, column=7).value = 'nextishead'
 
-    list_wb.remove_sheet(list_wb['list2'])
+    list_wb.remove_sheet(list_wb[out_template+'_list2'])
     list_2 = list_wb.copy_worksheet(list_1)
-    list_2.title = 'list2'
+    list_2.title = out_template+'_list2'
 
     blocks_seat_size = []
     for i in range(len(block_info)):
@@ -167,8 +167,10 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
         # line_step, seat_step = seat_step, line_step
         lorder, sorder = sorder, lorder
 
+    nextishead = False
     for i in range(line_size):
         seat_count = 0
+        nextishead = True
         for j in range(int(seat_size/interval)+1):
             # rotation block
             if side == 'C' or side == 'S':
@@ -181,6 +183,7 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
             if side == 'S' and (cur_seat*seat_step) > (seat_size/2) - (catwalk_size/2):
                 cur_col = cur_col + seat_step - 1
 
+            list_1 = list_wb[out_template+'_list1']
             if template.cell(row=cur_row, column=cur_col).value == sign:
                 seat_count = seat_count + 1
                 block_seat_count = block_seat_count + 1
@@ -196,11 +199,16 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
                         color_count = color_count + 1
                         row_no = row_no + 1
                         
-                        list_1 = list_wb['list1']
                         list_1.cell(row=row_no, column=1).value = row_no - 1
                         list_1.cell(row=row_no, column=2).value = block
                         list_1.cell(row=row_no, column=5).value = get_column_letter(cur_col)
                         list_1.cell(row=row_no, column=6).value = cur_row
+                        if j == int(seat_size/interval):
+                            nextishead = True
+                        if nextishead:
+                            list_1.cell(row=row_no, column=7).value = 'Print'
+                            nextishead = False
+
                         if side == 'S':
                             if lorder == 'n':
                                 list_1.cell(row=row_no, column=3).value = i + 2
@@ -235,6 +243,9 @@ def assign_available_block(info, index, template, sign, people_size=0, p_info=No
                         last_people_loc.append([cur_row, cur_col])
                         print('Block', block, 'End', get_column_letter(cur_col), cur_row, 'get people\t', people_size)
                         return
+            else:
+                list_1.cell(row=row_no, column=7).value = 'Print'
+                nextishead = True
                 
 
         if people_size == 0:
@@ -358,8 +369,10 @@ def musical_chair(list_out, list_in):
         src_idx = i
         des_idx = i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
-        for j in range(5):
-            list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+        for j in range(6):
+            src_data = list_in.cell(row=src_idx+2, column=j+2).value
+            if pd.notnull(src_data):
+                list_out.cell(row=des_idx+2, column=j+2).value = src_data
         
         cur_row = list_out.cell(row=des_idx+2, column=6).value
         cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
@@ -372,6 +385,8 @@ def musical_chair(list_out, list_in):
         if color_count == p_info.at[color_i, 'Size']:
             color_i = color_i + 1
             color_count = 0
+            list_out.cell(row=des_idx+2, column=7).value = 'Print'
+            list_out.cell(row=des_idx+3, column=7).value = 'Print'
 
     for i in range(remain_people):
         remainder = remain_people % rotate_size
@@ -383,8 +398,11 @@ def musical_chair(list_out, list_in):
             src_idx = first_reserved_size + (i % rotate_size)
         des_idx = first_reserved_size + i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
-        for j in range(5):
-            list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+        for j in range(6):
+            src_data = list_in.cell(row=src_idx+2, column=j+2).value
+            if pd.notnull(src_data):
+                list_out.cell(row=des_idx+2, column=j+2).value = src_data
+            # list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
 
         cur_row = list_out.cell(row=des_idx+2, column=6).value
         cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
@@ -395,13 +413,18 @@ def musical_chair(list_out, list_in):
         if color_count == p_info.at[color_i, 'Size']:
             color_i = color_i + 1
             color_count = 0
+            list_out.cell(row=des_idx+2, column=7).value = 'Print'
+            list_out.cell(row=des_idx+3, column=7).value = 'Print'
 
     for i in range(last_reserved_size):
         src_idx = first_reserved_size + rotate_size + i
         des_idx = people_size - last_reserved_size + i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
-        for j in range(5):
-            list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
+        for j in range(6):
+            src_data = list_in.cell(row=src_idx+2, column=j+2).value
+            if pd.notnull(src_data):
+                list_out.cell(row=des_idx+2, column=j+2).value = src_data
+            # list_out.cell(row=des_idx+2, column=j+2).value = list_in.cell(row=src_idx+2, column=j+2).value
         
         cur_row = list_out.cell(row=des_idx+2, column=6).value
         cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
@@ -414,6 +437,8 @@ def musical_chair(list_out, list_in):
         if color_count == p_info.at[color_i, 'Size']:
             color_i = color_i + 1
             color_count = 0
+            list_out.cell(row=des_idx+2, column=7).value = 'Print'
+            list_out.cell(row=des_idx+3, column=7).value = 'Print'
 
 
 main()
