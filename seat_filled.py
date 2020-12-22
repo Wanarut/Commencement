@@ -12,18 +12,30 @@ import pandas as pd
 import math
 import numpy as np
 
+first_reserved_size = int(1399/2)+24
+last_reserved_size = 332
+catwalk_size = 4
+
 print('Seat Step: ', end='')
 s_seat_step = int(input())
-
-first_reserved_size = int(1399/2)+24+24+58
-last_reserved_size = 332
-out_template = 'Morning Order'
-# out_template = 'Afternoon Order'
-catwalk_size = 4
 
 if s_seat_step > catwalk_size:
     print('Must increase catwalk size')
     exit()
+
+print('Morning or Afternoon [M/A]?', end='')
+while(True):
+    resp = input()
+    if resp.upper() == 'M':
+        out_template = 'Morning Order'
+        break
+    if resp.upper() == 'A':
+        out_template = 'Afternoon Order'
+        break
+    print('Please response only M or A')
+
+# out_template = 'Morning Order'
+# out_template = 'Afternoon Order'
 
 last_people_loc = []
 color_i = 0
@@ -254,8 +266,10 @@ def fill_special_block(info, blocks_seat_size, template):
         config_wb.save('Config.xlsx')
         print('Please check seatable chair are \'o\' sign in Excel')
         print('continue [Y/n]?', end='')
-        resp = input()
-        while(resp.upper() != 'Y'):
+        while(True):
+            resp = input()
+            if resp.upper() == 'Y':
+                break
             if resp.upper() == 'N':
                 exit()
             print('Please response only Y or N')
@@ -349,20 +363,24 @@ def musical_chair(list_out, list_in):
         
         cur_row = list_out.cell(row=des_idx+2, column=6).value
         cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
-        # for j in range(loop_size):
-            # template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
-            # template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
-        template[0].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
-        template[0].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        for j in range(loop_size):
+            template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+            template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
+        # template[0].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
+        # template[0].cell(row=cur_row, column=cur_col).value = des_idx + 1
         color_count = color_count + 1
         if color_count == p_info.at[color_i, 'Size']:
             color_i = color_i + 1
             color_count = 0
 
     for i in range(remain_people):
-        # remainder = remain_people % rotate_size
+        remainder = remain_people % rotate_size
         # src_idx = first_reserved_size + ((rotate_size-remainder+i) % rotate_size)
-        src_idx = first_reserved_size + (i % rotate_size)
+        # src_idx = first_reserved_size + (i % rotate_size)
+        if int(i/rotate_size)+1 == loop_size:
+            src_idx = first_reserved_size + ((rotate_size-remainder+i) % rotate_size)
+        else:
+            src_idx = first_reserved_size + (i % rotate_size)
         des_idx = first_reserved_size + i
         list_out.cell(row=des_idx+2, column=1).value = des_idx + 1
         for j in range(5):
@@ -370,7 +388,7 @@ def musical_chair(list_out, list_in):
 
         cur_row = list_out.cell(row=des_idx+2, column=6).value
         cur_col = column_index_from_string(list_out.cell(row=des_idx+2, column=5).value)
-        j = int((des_idx-first_reserved_size)/rotate_size)
+        j = int(i/rotate_size)
         template[j].cell(row=cur_row, column=cur_col).fill = PatternFill(fgColor=p_info.at[color_i, 'C_code'], fill_type='solid')
         template[j].cell(row=cur_row, column=cur_col).value = des_idx + 1
         color_count = color_count + 1
